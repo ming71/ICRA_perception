@@ -33,7 +33,8 @@ def template_matching(img):
 
 def masked_color(img, color='blue'):
     lower_blue =  np.array([100,43,46])
-    higher_blue = np.array([124,255,255])
+    higher_blue = np.array([150,255,255])
+    
     lower_red1 =  np.array([156, 43, 46])
     higher_red1 = np.array([180, 255, 255])
     lower_red2 =  np.array([0, 43, 46])
@@ -54,22 +55,30 @@ def masked_color(img, color='blue'):
     return left
 
 
+def thres_binary(gray, min=10, max=150):
+    gray = np.where(gray < min, np.zeros(gray.shape, int), gray)
+    gray = np.where(gray > max, np.ones(gray.shape, int), gray)
+    return gray.astype(np.uint8)
+
+
 def edge_detection(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ret, binary = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY_INV)
-    element = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))  
+    ret, binaryL = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY_INV)
+    ret, binaryH = cv2.threshold(gray, 120, 255, cv2.THRESH_BINARY)
+    binary = binaryL + binaryH
+    # binary = thres_binary(gray, min=10, max=120)
+    element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))  
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, element)
-    # gray = cv2.bilateralFilter(gray, 3, 15, 15)
-    # edge = cv2.Canny(binary,10, 200) 
-    # cv2.imshow('res', binary)
+    gray = cv2.bilateralFilter(binary, 3, 15, 15) 
+    # edge = cv2.Canny(gray,15, 200) 
+    # cv2.imshow('res', gray)
     # cv2.waitKey(0)
-
-    return binary
+    return gray
 
 def find_contours(edge):
     contours = cv2.findContours(edge.copy(),cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     contours = imutils.grab_contours(contours)
-    contours = sorted(contours,key=cv2.contourArea, reverse=True)[:20]
+    contours = sorted(contours,key=cv2.contourArea, reverse=True)[:10]
     screenCnts = []
     for c in contours:
         peri = cv2.arcLength(c, True)
@@ -112,9 +121,11 @@ def order_points(pts):
     (tr,br)=rightMost
     return np.array([tl, tr, br, bl], dtype="float32")
 
+
+
 if __name__ == "__main__":
 
-    img = cv2.imread('data/imgs/8.jpg')
+    img = cv2.imread('data/imgs/odu.bmp')
     img = cv2.resize(img,(768,768))
 
     leftb = masked_color(img, color='blue')
@@ -133,7 +144,7 @@ if __name__ == "__main__":
             res = template_matching(cropped)
             if (res != 'False') and (res not in dets):
                 print(res)
-                cv2.imshow(res, cropped)
+                # cv2.imshow(res, cropped)
             dets.append(res)
         cv2.waitKey(0)
 
